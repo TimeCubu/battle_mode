@@ -130,4 +130,4 @@ fi
 
 # Summary message
 add_separator
-echo "PHP Server Troubleshooting completed. Check above logs for errors." | tee -a $LOG_FILE
+echo "PHP Server Troubleshooting completed. Check above logs for errors or /tmp/php_potion.log" | tee -a $LOG_FILE
