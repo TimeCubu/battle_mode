@@ -1,8 +1,11 @@
 #!/bin/bash
+# run as sudo
+echo "Running as sudo input password if you have one"
+sudo su
 
 # Log file
-LOG_FILE="/tmp/php_potion.log"
-echo "PHP Server Troubleshooting Report - $(date)" > $LOG_FILE
+LOG_FILE="/tmp/webserver_potion.log"
+echo "Web Server Troubleshooting Report - $(date)" > $LOG_FILE
 
 # Function to add a separator
 add_separator() {
@@ -86,6 +89,11 @@ else
     echo "[ERROR] index.php not found!" | tee -a $LOG_FILE
 fi
 
+# Test for Misconfigured .htaccess files can cause a 404 error:
+add_separator
+echo "Checking for misconfigured .htaccess files..." | tee -a $LOG_FILE
+find /var/www/html -type f -name ".htaccess" -exec grep -H "RewriteRule" {} \; | tee -a $LOG_FILE
+
 # Check for port conflicts
 add_separator
 echo "Checking for port conflicts..." | tee -a $LOG_FILE
@@ -127,6 +135,105 @@ if grep -q "listen = 127.0.0.1:9000" /etc/php/*/fpm/pool.d/www.conf; then
 else
     echo "[WARNING] PHP-FPM may be misconfigured. Check /etc/php/*/fpm/pool.d/www.conf" | tee -a $LOG_FILE
 fi
+
+# apache is returning a 404 error how would you fix.
+# Check apache2 service status
+add_separator
+echo "Checking apache2 service status..." | tee -a $LOG_FILE
+check_service apache2
+
+# Check apache2 error log
+add_separator
+echo "Checking apache2 error log..." | tee -a $LOG_FILE
+if [ -f /var/log/apache2/error.log ]; then
+    tail -n 20 /var/log/apache2/error.log | tee -a $LOG_FILE
+else
+    echo "[ERROR] Apache2 error log not found!" | tee -a $LOG_FILE
+fi
+
+# Check apache2 access log
+add_separator
+echo "Checking apache2 access log..." | tee -a $LOG_FILE
+if [ -f /var/log/apache2/access.log ]; then
+    tail -n 20 /var/log/apache2/access.log | tee -a $LOG_FILE
+else
+    echo "[ERROR] Apache2 access log not found!" | tee -a $LOG_FILE
+fi
+
+# Check apache2 virtual host configuration and check syntax
+add_separator
+echo "Checking apache2 virtual host configuration..." | tee -a $LOG_FILE
+if [ -d /etc/apache2/sites-available ]; then
+    grep -r "DocumentRoot" /etc/apache2/sites-available/* | tee -a $LOG_FILE
+    echo "Checking apache2 virtual host configuration syntax..." | tee -a $LOG_FILE
+    apache2ctl configtest | tee -a $LOG_FILE
+else
+    echo "[ERROR] Apache2 virtual host configuration not found!" | tee -a $LOG_FILE
+fi
+
+
+# Check apache2 ports configuration
+add_separator
+echo "Checking apache2 ports configuration..." | tee -a $LOG_FILE
+if [ -f /etc/apache2/ports.conf ]; then
+    cat /etc/apache2/ports.conf | tee -a $LOG_FILE
+else
+    echo "[ERROR] Apache2 ports configuration not found!" | tee -a $LOG_FILE
+fi
+
+
+# Check apache2 sites-enabled configuration
+add_separator
+echo "Checking apache2 sites-enabled configuration..." | tee -a $LOG_FILE
+if [ -d /etc/apache2/sites-enabled ]; then
+    ls -l /etc/apache2/sites-enabled/ | tee -a $LOG_FILE
+else
+    echo "[ERROR] Apache2 sites-enabled configuration not found!" | tee -a $LOG_FILE
+fi
+
+# Check apache2 modules
+add_separator
+echo "Checking apache2 modules..." | tee -a $LOG_FILE
+apache2ctl -M | tee -a $LOG_FILE
+
+# Check apache2.conf file
+add_separator
+echo "Checking apache2.conf file..." | tee -a $LOG_FILE
+if [ -f /etc/apache2/apache2.conf ]; then
+    cat /etc/apache2/apache2.conf | tee -a $LOG_FILE
+else
+    echo "[ERROR] apache2.conf not found!" | tee -a $LOG_FILE
+fi
+
+# Check apache2 version
+add_separator
+echo "Checking apache2 version..." | tee -a $LOG_FILE
+apache2 -v | tee -a $LOG_FILE
+
+# Check apache2 permissions on index.html
+add_separator
+echo "Checking permissions on index.html..." | tee -a $LOG_FILE
+if [ -f /var/www/html/index.html ]; then
+    ls -lah /var/www/html/index.html | tee -a $LOG_FILE
+    if [ ! -r /var/www/html/index.html ]; then
+        echo "[ERROR] index.html is not readable. Run: chmod 644 /var/www/html/index.html" | tee -a $LOG_FILE
+    fi
+else
+    echo "[ERROR] index.html not found!" | tee -a $LOG_FILE
+fi
+
+# Check apache2 permissions on directory /var/www/html
+add_separator
+echo "Checking permissions on /var/www/html directory..." | tee -a $LOG_FILE
+if [ -d /var/www/html ]; then
+    ls -lah /var/www/html | tee -a $LOG_FILE
+    if [ ! -r /var/www/html ]; then
+        echo "[ERROR] /var/www/html is not readable. Run: chmod 755 /var/www/html" | tee -a $LOG_FILE
+    fi
+else
+    echo "[ERROR] /var/www/html directory not found!" | tee -a $LOG_FILE
+fi
+
 
 # Summary message
 add_separator

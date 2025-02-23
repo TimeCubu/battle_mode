@@ -37,7 +37,6 @@ df -h >> $LOG_FILE
 echo -e "\nI/O Usage:" >> $LOG_FILE
 iotop -b -n 5 | head -n 20 >> $LOG_FILE
 
-
 echo "==================== Running & Failed Services ====================" >> $LOG_FILE
 # List all running & failed services
 echo "Running Services:" >> $LOG_FILE
@@ -51,6 +50,10 @@ echo "==================== Network & Firewall ====================" >> $LOG_FILE
 # Network Connections & Open Ports
 echo "Listening Ports:" >> $LOG_FILE
 ss -tulnp >> $LOG_FILE
+# where are apache2 config files located
+# /etc/apache2/apache2.conf
+# /etc/apache2/sites-available/000-default.conf
+# Check if apache2 is installed before running
 
 # Check if iptables is installed before running
 if command_exists iptables; then
